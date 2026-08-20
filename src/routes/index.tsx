@@ -3,10 +3,16 @@ import { useState } from "react";
 import {
   ALLOWED_COMMANDS,
   COMMAND_DESCRIPTIONS,
+  type AllowedCommand,
   type BridgeResult,
 } from "@/lib/bridge/commands";
 import { handleCommand } from "@/lib/bridge/handleCommand";
-import { BROADCAST_ACTION, getAdapter } from "@/lib/bridge/adapter";
+import {
+  BROADCAST_ACTION,
+  BROADCAST_EXTRA_KEY,
+  buildBroadcastPlan,
+  getAdapter,
+} from "@/lib/bridge/adapter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,13 +21,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Localhost-only command bridge prototype for a private Android assistant: strict allowlist, dry-run broadcast adapter, no cloud, no analytics.",
+          "Localhost-only command bridge prototype for a private Android assistant: strict 11-command allowlist, dry-run Automate broadcast adapter, no cloud, no analytics.",
       },
       { property: "og:title", content: "Sefey Controller Bridge — Local Dry-Run Console" },
       {
         property: "og:description",
         content:
-          "Private, localhost-only bridge prototype with a strict 11-command allowlist and a safe dry-run Android broadcast adapter.",
+          "Private, loopback-only bridge prototype with a strict command allowlist and a safe dry-run Android broadcast adapter.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -29,34 +35,36 @@ export const Route = createFileRoute("/")({
   component: BridgeDashboard,
 });
 
-const LOCAL_URL = "http://127.0.0.1:8080/api/command";
+const LOCAL_URL = "http://127.0.0.1:8080/command";
 
 function BridgeDashboard() {
   const [log, setLog] = useState<BridgeResult[]>([]);
   const [custom, setCustom] = useState("");
+  const [selected, setSelected] = useState<AllowedCommand>("OPEN_FLASHLIGHT");
   const adapter = getAdapter();
+  const preview = buildBroadcastPlan(selected);
 
   async function run(command: string) {
     const result = await handleCommand({ command });
-    setLog((prev) => [result, ...prev].slice(0, 40));
+    setLog((prev) => [result, ...prev].slice(0, 50));
   }
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-xl px-4 pb-16 pt-6">
       <header className="mb-6">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          private prototype
+          private prototype · not deployed
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
           Sefey Controller Bridge
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Local-first command bridge between Sefey/ChatterUI and an existing Automate
-          flow. Not deployed, not public, no data collection.
+          flow. Dry-run only: no Android broadcast can leave a web preview.
         </p>
       </header>
 
-      <section className="rounded-xl border border-border bg-card p-4">
+      <Panel>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="size-2 animate-pulse rounded-full bg-chart-2" />
@@ -68,46 +76,55 @@ function BridgeDashboard() {
         </div>
         <dl className="mt-4 space-y-2 font-mono text-xs">
           <Row label="endpoint" value={`POST ${LOCAL_URL}`} />
+          <Row label="alias" value="POST /api/command" />
           <Row label="payload" value={'{"command":"OPEN_FLASHLIGHT"}'} />
           <Row label="adapter" value={adapter.name} />
-          <Row label="broadcast" value={`${BROADCAST_ACTION} · extras.command`} />
+          <Row label="broadcast" value={`${BROADCAST_ACTION} · extras.${BROADCAST_EXTRA_KEY}`} />
           <Row label="allowlist" value={`${ALLOWED_COMMANDS.length} commands`} />
         </dl>
-      </section>
+      </Panel>
 
-      <section className="mt-4 rounded-xl border border-border bg-secondary/40 p-4 text-xs leading-relaxed text-muted-foreground">
-        <h2 className="mb-2 text-sm font-semibold text-foreground">Security notes</h2>
-        <ul className="list-disc space-y-1 pl-4">
+      <Section title="Security notes">
+        <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground">
           <li>
-            HTTP API answers loopback hosts only (127.0.0.1 / localhost). Non-loopback
-            requests are refused with 403; nothing binds to 0.0.0.0.
+            Loopback-only: requests whose Host is not 127.0.0.1 / localhost / ::1 get
+            403. Nothing binds to 0.0.0.0, there is no wildcard CORS, no public hosting,
+            no cloud database.
           </li>
           <li>
-            Only the {ALLOWED_COMMANDS.length} allowlisted strings below are accepted.
-            Anything else is blocked before any adapter call.
+            Exactly {ALLOWED_COMMANDS.length} allowlisted strings are accepted. Bodies
+            with a missing, non-string, empty, or extra field are rejected before any
+            adapter call.
           </li>
           <li>
-            No shell, no eval, no file access, no dynamic intents, no user-supplied code
-            paths. The command string is compared against a fixed list — never
-            interpreted.
+            No shell, no eval, no filesystem, no dynamic intents. The command is
+            compared against a fixed list — never interpreted or interpolated into an
+            executable form.
           </li>
           <li>
-            The web layer cannot send Android broadcasts. Buttons here exercise
-            validation + the dry-run adapter only; real{" "}
-            <span className="font-mono">sendBroadcast</span> happens in the native APK.
+            Logging is metadata only: request id, timestamp, status, reason code.
+            Rejected input is never echoed back or stored.
           </li>
           <li>No analytics, no telemetry, no persistence — the log lives in memory.</li>
         </ul>
-      </section>
+      </Section>
 
-      <section className="mt-6">
-        <h2 className="mb-3 text-sm font-semibold">Allowlisted commands</h2>
+      <Section title="Bridge test panel">
+        <p className="mb-3 text-xs text-muted-foreground">
+          Each button runs the real validation path and the dry-run adapter. Nothing is
+          sent to Android.
+        </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {ALLOWED_COMMANDS.map((cmd) => (
             <button
               key={cmd}
-              onClick={() => run(cmd)}
-              className="rounded-lg border border-border bg-card px-3 py-3 text-left transition-colors active:bg-accent hover:bg-accent"
+              onClick={() => {
+                setSelected(cmd);
+                void run(cmd);
+              }}
+              className={`rounded-lg border px-3 py-3 text-left transition-colors hover:bg-accent active:bg-accent ${
+                selected === cmd ? "border-primary bg-accent" : "border-border bg-card"
+              }`}
             >
               <span className="block font-mono text-sm font-medium">{cmd}</span>
               <span className="block text-xs text-muted-foreground">
@@ -116,10 +133,28 @@ function BridgeDashboard() {
             </button>
           ))}
         </div>
-      </section>
 
-      <section className="mt-6">
-        <h2 className="mb-2 text-sm font-semibold">Rejection test</h2>
+        <div className="mt-4 rounded-lg border border-border bg-card p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold">Simulated broadcast payload</span>
+            <span className="rounded bg-chart-5/15 px-2 py-0.5 font-mono text-[10px] uppercase text-chart-5">
+              dry run
+            </span>
+          </div>
+          <pre className="overflow-x-auto rounded-md bg-muted p-2 font-mono text-[10px] leading-relaxed">
+            {JSON.stringify(
+              { action: preview.action, extras: preview.extras, dryRun: true },
+              null,
+              2,
+            )}
+          </pre>
+          <pre className="mt-2 overflow-x-auto rounded-md bg-muted p-2 font-mono text-[10px] text-muted-foreground">
+            {preview.nativeCall}
+          </pre>
+        </div>
+      </Section>
+
+      <Section title="Rejection test">
         <div className="flex gap-2">
           <input
             value={custom}
@@ -134,28 +169,32 @@ function BridgeDashboard() {
             Send
           </button>
         </div>
-      </section>
+      </Section>
 
-      <section className="mt-6">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Request log</h2>
-          {log.length > 0 && (
+      <Section
+        title="Request log"
+        action={
+          log.length > 0 ? (
             <button
               onClick={() => setLog([])}
               className="text-xs text-muted-foreground underline"
             >
               clear
             </button>
-          )}
-        </div>
+          ) : null
+        }
+      >
         {log.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
             No requests yet. Tap a command above.
           </p>
         ) : (
           <ul className="space-y-2">
-            {log.map((entry, i) => (
-              <li key={i} className="rounded-lg border border-border bg-card p-3">
+            {log.map((entry) => (
+              <li
+                key={entry.requestId}
+                className="rounded-lg border border-border bg-card p-3"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate font-mono text-sm">
                     {entry.command ?? "—"}
@@ -169,14 +208,65 @@ function BridgeDashboard() {
                   </pre>
                 )}
                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  {entry.receivedAt}
+                  {entry.requestId} · {entry.receivedAt} · {entry.reason}
                 </p>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Section>
+
+      <Section title="Native Android integration">
+        <div className="space-y-2 text-xs leading-relaxed text-muted-foreground">
+          <p>
+            This web layer is the bridge/validation tier only. The final APK must ship a
+            native intent sender: after the same validation contract passes, Android
+            code emits the broadcast that the existing Automate flow already listens
+            for.
+          </p>
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-[10px] leading-relaxed text-foreground">
+{`// Android (Kotlin) — replaces DryRunAutomateAdapter
+val intent = Intent("${BROADCAST_ACTION}")
+intent.putExtra("${BROADCAST_EXTRA_KEY}", command) // exact allowlisted string
+context.sendBroadcast(intent)
+
+// Automate side: BroadcastReceiver on action ${BROADCAST_ACTION}
+// reads extras.${BROADCAST_EXTRA_KEY} and runs the existing flow.`}
+          </pre>
+          <p>
+            Contract stays identical: POST <span className="font-mono">/command</span>{" "}
+            with <span className="font-mono">{'{"command":"..."}'}</span>, same
+            allowlist, same JSON result shape. Only{" "}
+            <span className="font-mono">getAdapter()</span> is swapped, and the embedded
+            server must bind 127.0.0.1 exclusively.
+          </p>
+        </div>
+      </Section>
     </main>
+  );
+}
+
+function Panel({ children }: { children: React.ReactNode }) {
+  return <section className="rounded-xl border border-border bg-card p-4">{children}</section>;
+}
+
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-6">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
   );
 }
 

@@ -1,14 +1,15 @@
 /**
- * Broadcast adapter abstraction.
+ * Automate broadcast adapter abstraction (DRY RUN ONLY here).
  *
- * The web preview CANNOT send Android broadcasts. This module defines the
- * seam where the native Android layer plugs in. Only the DryRunAdapter is
- * wired up here; it validates and describes the broadcast without sending it.
+ * A web preview cannot send Android broadcasts. This module defines the seam
+ * where the native Android layer plugs in. Only the dry-run adapter is wired
+ * up; it maps an allowlisted command to the exact broadcast the native app
+ * will emit, without emitting anything.
  *
- * Native port (later, inside the Android app):
+ * Native port (inside the Android APK):
  *
  *   val intent = Intent("AI_BRIDGE_TEST")
- *   intent.putExtra("command", command)
+ *   intent.putExtra("command", command)   // exact allowlisted string
  *   context.sendBroadcast(intent)
  */
 
@@ -19,6 +20,7 @@ export const BROADCAST_EXTRA_KEY = "command";
 
 export interface BroadcastAdapter {
   readonly name: string;
+  /** false in every web/preview context — no Android execution is possible. */
   readonly canExecute: boolean;
   send(command: AllowedCommand): Promise<BroadcastPlan>;
 }
@@ -26,21 +28,22 @@ export interface BroadcastAdapter {
 export function buildBroadcastPlan(command: AllowedCommand): BroadcastPlan {
   return {
     action: BROADCAST_ACTION,
-    extras: { [BROADCAST_EXTRA_KEY]: command } as { command: AllowedCommand },
+    extras: { command },
     nativeCall: `Intent("${BROADCAST_ACTION}").putExtra("${BROADCAST_EXTRA_KEY}", "${command}") -> context.sendBroadcast(intent)`,
+    dryRun: true,
   };
 }
 
 /** Safe no-op adapter used everywhere outside a native Android host. */
 export const dryRunAdapter: BroadcastAdapter = {
-  name: "DryRunAdapter (no Android execution)",
+  name: "DryRunAutomateAdapter (no Android execution)",
   canExecute: false,
   async send(command) {
     return buildBroadcastPlan(command);
   },
 };
 
-/** Single place to swap in the native adapter when running inside the APK. */
+/** Single swap point for the native adapter when running inside the APK. */
 export function getAdapter(): BroadcastAdapter {
   return dryRunAdapter;
 }
