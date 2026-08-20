@@ -12,15 +12,14 @@ const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1"]);
 
 export function isLoopbackHost(host: string | null): boolean {
   if (!host) return false;
-  const hostname = host
-    .replace(/^\[/, "")
-    .split("]")[0]!
-    .split(":")
-    .slice(0, host.includes("]") || !host.includes(":") ? undefined : 1)
-    .join(":")
-    .toLowerCase();
+  const h = host.trim().toLowerCase();
+  // "[::1]:8080" -> "::1"   |   "127.0.0.1:8080" -> "127.0.0.1"
+  const hostname = h.startsWith("[")
+    ? h.slice(1, h.indexOf("]"))
+    : h.split(":")[0]!;
   return LOOPBACK.has(hostname);
 }
+
 
 /** No wildcard CORS: only same-origin loopback callers are answered. */
 const BASE_HEADERS = {

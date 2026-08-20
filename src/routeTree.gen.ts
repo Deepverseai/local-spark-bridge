@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CommandRouteImport } from './routes/command'
 import { Route as ApiCommandRouteImport } from './routes/api/command'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommandRoute = CommandRouteImport.update({
+  id: '/command',
+  path: '/command',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCommandRoute = ApiCommandRouteImport.update({
@@ -25,27 +31,31 @@ const ApiCommandRoute = ApiCommandRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/command': typeof CommandRoute
   '/api/command': typeof ApiCommandRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/command': typeof CommandRoute
   '/api/command': typeof ApiCommandRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/command': typeof CommandRoute
   '/api/command': typeof ApiCommandRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/command'
+  fullPaths: '/' | '/command' | '/api/command'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/command'
-  id: '__root__' | '/' | '/api/command'
+  to: '/' | '/command' | '/api/command'
+  id: '__root__' | '/' | '/command' | '/api/command'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommandRoute: typeof CommandRoute
   ApiCommandRoute: typeof ApiCommandRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/command': {
+      id: '/command'
+      path: '/command'
+      fullPath: '/command'
+      preLoaderRoute: typeof CommandRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/command': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommandRoute: CommandRoute,
   ApiCommandRoute: ApiCommandRoute,
 }
 export const routeTree = rootRouteImport
