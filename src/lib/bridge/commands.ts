@@ -1,8 +1,8 @@
 /**
- * Sefey Controller Bridge — command allowlist.
+ * Sefey Controller Bridge — command allowlist and shared contract types.
  *
- * This file is intentionally dependency-free so it can be ported verbatim
- * into the native Android layer (Kotlin/JS bridge) later.
+ * Dependency-free on purpose so it can be ported verbatim into the native
+ * Android layer (Kotlin/JS bridge) later.
  */
 
 export const ALLOWED_COMMANDS = [
@@ -44,18 +44,33 @@ export function isAllowedCommand(value: unknown): value is AllowedCommand {
 
 export type BridgeStatus = "success" | "blocked" | "error";
 
-export interface BridgeResult {
-  status: BridgeStatus;
-  command: string | null;
-  mode: "dry-run";
-  message: string;
-  broadcast?: BroadcastPlan;
-  receivedAt: string;
-}
+/** Machine-readable reason codes — safe to log, never contain payload data. */
+export type BridgeReason =
+  | "OK"
+  | "BODY_NOT_OBJECT"
+  | "COMMAND_MISSING"
+  | "COMMAND_NOT_STRING"
+  | "COMMAND_NOT_ALLOWED"
+  | "UNEXPECTED_FIELDS"
+  | "BAD_JSON"
+  | "NON_LOOPBACK";
 
 export interface BroadcastPlan {
   action: string;
   extras: { command: AllowedCommand };
   /** Human-readable representation of what the native layer will do. */
   nativeCall: string;
+  dryRun: true;
+}
+
+export interface BridgeResult {
+  requestId: string;
+  receivedAt: string;
+  status: BridgeStatus;
+  reason: BridgeReason;
+  /** Allowlisted command, or null. Rejected input is never echoed back. */
+  command: AllowedCommand | null;
+  mode: "dry-run";
+  message: string;
+  broadcast?: BroadcastPlan;
 }
