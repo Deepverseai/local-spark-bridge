@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network security configuration for the Sefey Controller Bridge.
+
+  Base config: cleartext traffic is BLOCKED for all domains.
+  Domain-specific exemption: cleartext is permitted ONLY for localhost and
+  127.0.0.1, because the embedded HTTP server serves plain HTTP over loopback.
+
+  This scoped exemption ensures no non-loopback destination can benefit from
+  cleartext access. The localhost-only guarantee is enforced by two independent
+  layers: (1) the native server hard-binds to 127.0.0.1, and (2) the loopback
+  Host check rejects any request not from 127.0.0.1 / localhost / ::1 with 403.
+
+  From Android 17 (API 37) and higher, an implicit localhost cleartext exemption
+  is added automatically. This explicit config covers API 28 through 36 and is
+  harmless on 37+.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

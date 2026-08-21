@@ -60,7 +60,7 @@ export interface BroadcastPlan {
   extras: { command: AllowedCommand };
   /** Human-readable representation of what the native layer will do. */
   nativeCall: string;
-  dryRun: true;
+  dryRun: boolean;
 }
 
 export interface BridgeResult {
@@ -70,7 +70,7 @@ export interface BridgeResult {
   reason: BridgeReason;
   /** Allowlisted command, or null. Rejected input is never echoed back. */
   command: AllowedCommand | null;
-  mode: "dry-run";
+  mode: "dry-run" | "native";
   message: string;
   broadcast?: BroadcastPlan;
 }

@@ -90,6 +90,7 @@ export async function handleCommand(payload: unknown): Promise<BridgeResult> {
 
   return {
     ...result("success", "OK", "", raw),
+    mode: adapter.canExecute ? "native" : "dry-run",
     message: adapter.canExecute
       ? "Validated. Broadcast sent by native adapter."
       : "Validated. DRY RUN — the web layer cannot send Android broadcasts.",
