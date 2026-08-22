@@ -20,7 +20,7 @@ export function BridgeDashboard() {
   const [custom, setCustom] = useState("");
   const [selected, setSelected] = useState<AllowedCommand>("OPEN_FLASHLIGHT");
   const adapter = getAdapter();
-  const preview = buildBroadcastPlan(selected);
+  const preview = selected ? buildBroadcastPlan(selected) : null;
 
   async function run(command: string) {
     const result = await handleCommand({ command });
