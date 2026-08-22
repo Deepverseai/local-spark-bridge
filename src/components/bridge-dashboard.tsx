@@ -18,7 +18,7 @@ const LOCAL_URL = "http://127.0.0.1:8080/command";
 export function BridgeDashboard() {
   const [log, setLog] = useState<BridgeResult[]>([]);
   const [custom, setCustom] = useState("");
-  const [selected, setSelected] = useState<AllowedCommand>("OPEN_FLASHLIGHT");
+  const [selected, setSelected] = useState<AllowedCommand | null>(null);
   const adapter = getAdapter();
   const preview = selected ? buildBroadcastPlan(selected) : null;
 
