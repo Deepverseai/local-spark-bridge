@@ -74,3 +74,94 @@ export interface BridgeResult {
   message: string;
   broadcast?: BroadcastPlan;
 }
+
+
+export type CommandCategory = "apps" | "device" | "tools";
+
+export type CommandType = "action" | "toggle" | "query";
+
+export interface CommandDefinition {
+  category: CommandCategory;
+  type: CommandType;
+  label: string;
+  description: string;
+  target?: "flashlight" | "bluetooth";
+  state?: "on" | "off";
+}
+
+export const COMMAND_REGISTRY: Record<AllowedCommand, CommandDefinition> = {
+  OPEN_MAPS: {
+    category: "apps",
+    type: "action",
+    label: "Open Maps",
+    description: "Launch the maps app",
+  },
+  OPEN_BROWSER: {
+    category: "apps",
+    type: "action",
+    label: "Open Browser",
+    description: "Launch the default browser",
+  },
+  OPEN_CAMERA: {
+    category: "apps",
+    type: "action",
+    label: "Open Camera",
+    description: "Launch the camera app",
+  },
+  OPEN_WHATSAPP: {
+    category: "apps",
+    type: "action",
+    label: "Open WhatsApp",
+    description: "Launch WhatsApp",
+  },
+  OPEN_SETTINGS: {
+    category: "apps",
+    type: "action",
+    label: "Open Settings",
+    description: "Open system settings",
+  },
+  OPEN_FLASHLIGHT: {
+    category: "device",
+    type: "toggle",
+    label: "Flashlight ON",
+    description: "Turn the torch on",
+    target: "flashlight",
+    state: "on",
+  },
+  CLOSE_FLASHLIGHT: {
+    category: "device",
+    type: "toggle",
+    label: "Flashlight OFF",
+    description: "Turn the torch off",
+    target: "flashlight",
+    state: "off",
+  },
+  SET_TIMER: {
+    category: "tools",
+    type: "action",
+    label: "Set Timer",
+    description: "Start a timer via the clock app",
+  },
+  BATTERY_STATUS: {
+    category: "tools",
+    type: "query",
+    label: "Battery Status",
+    description: "Report battery level",
+  },
+  BLUETOOTH_ON: {
+    category: "device",
+    type: "toggle",
+    label: "Bluetooth ON",
+    description: "Enable Bluetooth",
+    target: "bluetooth",
+    state: "on",
+  },
+  BLUETOOTH_OFF: {
+    category: "device",
+    type: "toggle",
+    label: "Bluetooth OFF",
+    description: "Disable Bluetooth",
+    target: "bluetooth",
+    state: "off",
+  },
+};
